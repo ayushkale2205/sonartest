@@ -91,8 +91,11 @@ jobs:
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
-          curl -X POST $N8N_WEBHOOK_URL \
+          echo "Sending the following data to n8n: {\"report_pdf\": \"$REPORT_PDF\"}"
+
+          # Sending the report PDF link to n8n webhook
+          curl -X POST "$N8N_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d '{"report_pdf": "'"$REPORT_PDF"'"}'
+            -d "{\"report_pdf\": \"$REPORT_PDF\"}"
 
           echo "GTmetrix Report PDF Link sent to n8n!"
