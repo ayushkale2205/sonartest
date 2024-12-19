@@ -27,15 +27,12 @@ jobs:
             -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
             -o gtmetrix-response.json
           
-          # Log the initial response
           echo "Raw GTmetrix Response (Initial Test Submission):"
           cat gtmetrix-response.json
 
-          # Extract the self link from the response
           SELF_LINK=$(jq -r '.links.self' gtmetrix-response.json)
           echo "Self Link: $SELF_LINK"
 
-          # Ensure the self link is valid
           if [ -z "$SELF_LINK" ] || [ "$SELF_LINK" == "null" ]; then
             echo "Failed to retrieve the self link for the GTmetrix test"
             exit 1
@@ -50,11 +47,9 @@ jobs:
               -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
               -o gtmetrix-detailed-response.json
 
-            # Log the detailed response at each step
             echo "Raw GTmetrix Response (Polling Step $i):"
             cat gtmetrix-detailed-response.json
 
-            # Check the test state
             STATE=$(jq -r '.data.attributes.state' gtmetrix-detailed-response.json)
             echo "Test State: $STATE"
 
@@ -65,32 +60,39 @@ jobs:
               echo "GTmetrix test did not complete within the timeout period."
               exit 1
             fi
-
-            # Wait before retrying
             sleep $RETRY_DELAY
           done
 
-          # Step 3: Extract the report_pdf link
-          REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-detailed-response.json)
+          # Step 3: Fetch Detailed Report
+          REPORT_LINK=$(jq -r '.data.links.report' gtmetrix-detailed-response.json)
+          echo "Report Link: $REPORT_LINK"
+
+          if [ -z "$REPORT_LINK" ] || [ "$REPORT_LINK" == "null" ]; then
+            echo "Failed to retrieve the report link"
+            exit 1
+          fi
+
+          curl -X GET "$REPORT_LINK" \
+            -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
+            -o gtmetrix-report-details.json
+
+          echo "Detailed Report Response:"
+          cat gtmetrix-report-details.json
+
+          REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-report-details.json)
           echo "Report PDF Link: $REPORT_PDF"
 
-          # Ensure the report PDF link is valid
           if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report PDF link"
             exit 1
           fi
 
-          # Log the final detailed response for reference
-          echo "Final Detailed GTmetrix Response:"
-          cat gtmetrix-detailed-response.json
-
       - name: Send Report Link to n8n
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
-          # Send the report PDF link to the n8n webhook
           curl -X POST $N8N_WEBHOOK_URL \
             -H "Content-Type: application/json" \
             -d '{"report_pdf": "'"$REPORT_PDF"'"}'
-          
+
           echo "GTmetrix Report PDF Link sent to n8n!"
