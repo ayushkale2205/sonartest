@@ -20,11 +20,11 @@ jobs:
         env:
           GTMETRIX_API_KEY: ${{ secrets.GTMETRIX_API_KEY }}
         run: |
-          # Replace <website_url> with the URL of the website you want to test
           curl -X POST https://gtmetrix.com/api/2.0/tests \
           -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
-          -H "Content-Type: application/json" \
+          -H "Content-Type: application/vnd.api+json" \
           -d '{"url": "https://www.google.com/"}' -o gtmetrix-response.json
+
 
       - name: Display Results
         run: |
