@@ -21,7 +21,7 @@ jobs:
           GTMETRIX_API_KEY: ${{ secrets.GTMETRIX_API_KEY }}
         run: |
           curl -X POST https://gtmetrix.com/api/2.0/tests \
-          -H "Authorization: Basic (echo -n ${GTMETRIX_API_KEY}: | base64)" \
+          -H "Authorization: Basic $(echo -n {GTMETRIX_API_KEY}: | base64)" \
           -H "Content-Type: application/vnd.api+json" \
           -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
           -o gtmetrix-response.json
