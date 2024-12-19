@@ -27,6 +27,10 @@ jobs:
             -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
             -o gtmetrix-response.json
           
+          # Log the initial response
+          echo "Raw GTmetrix Response (Initial Test Submission):"
+          cat gtmetrix-response.json
+
           # Extract the self link from the response
           SELF_LINK=$(jq -r '.links.self' gtmetrix-response.json)
           echo "Self Link: $SELF_LINK"
@@ -37,12 +41,36 @@ jobs:
             exit 1
           fi
 
-          # Step 2: Retrieve the detailed test report
-          curl -X GET "$SELF_LINK" \
-            -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
-            -o gtmetrix-detailed-response.json
-          
-          # Extract the report_pdf link
+          # Step 2: Poll for Test Completion
+          MAX_RETRIES=10
+          RETRY_DELAY=30
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Polling GTmetrix test status... Attempt $i of $MAX_RETRIES"
+            curl -X GET "$SELF_LINK" \
+              -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
+              -o gtmetrix-detailed-response.json
+
+            # Log the detailed response at each step
+            echo "Raw GTmetrix Response (Polling Step $i):"
+            cat gtmetrix-detailed-response.json
+
+            # Check the test state
+            STATE=$(jq -r '.data.attributes.state' gtmetrix-detailed-response.json)
+            echo "Test State: $STATE"
+
+            if [ "$STATE" == "completed" ]; then
+              echo "GTmetrix Test Completed!"
+              break
+            elif [ "$i" -eq "$MAX_RETRIES" ]; then
+              echo "GTmetrix test did not complete within the timeout period."
+              exit 1
+            fi
+
+            # Wait before retrying
+            sleep $RETRY_DELAY
+          done
+
+          # Step 3: Extract the report_pdf link
           REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-detailed-response.json)
           echo "Report PDF Link: $REPORT_PDF"
 
@@ -51,6 +79,10 @@ jobs:
             echo "Failed to retrieve the GTmetrix report PDF link"
             exit 1
           fi
+
+          # Log the final detailed response for reference
+          echo "Final Detailed GTmetrix Response:"
+          cat gtmetrix-detailed-response.json
 
       - name: Send Report Link to n8n
         env:
