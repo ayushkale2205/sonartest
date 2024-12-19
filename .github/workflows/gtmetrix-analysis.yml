@@ -20,34 +20,45 @@ jobs:
         env:
           GTMETRIX_API_KEY: ${{ secrets.GTMETRIX_API_KEY }}
         run: |
-          # Send a POST request to start a GTmetrix test
+          # Step 1: Trigger GTmetrix Test
           curl -X POST https://gtmetrix.com/api/2.0/tests \
             -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
             -H "Content-Type: application/vnd.api+json" \
             -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
             -o gtmetrix-response.json
           
-          # Display the raw GTmetrix response
-          echo "Raw GTmetrix Response:"
-          cat gtmetrix-response.json
-          
-          # Extract the report PDF URL
-          export REPORT_URL=$(jq -r '.data.attributes.report_pdf' gtmetrix-response.json)
-          echo "Extracted Report URL: $REPORT_URL"
-          
-          # Ensure the report URL is valid
-          if [ -z "$REPORT_URL" ] || [ "$REPORT_URL" == "null" ]; then
-            echo "Failed to retrieve the GTmetrix report URL"
+          # Extract the self link from the response
+          SELF_LINK=$(jq -r '.links.self' gtmetrix-response.json)
+          echo "Self Link: $SELF_LINK"
+
+          # Ensure the self link is valid
+          if [ -z "$SELF_LINK" ] || [ "$SELF_LINK" == "null" ]; then
+            echo "Failed to retrieve the self link for the GTmetrix test"
             exit 1
           fi
 
-      - name: Display Results
+          # Step 2: Retrieve the detailed test report
+          curl -X GET "$SELF_LINK" \
+            -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
+            -o gtmetrix-detailed-response.json
+          
+          # Extract the report_pdf link
+          REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-detailed-response.json)
+          echo "Report PDF Link: $REPORT_PDF"
+
+          # Ensure the report PDF link is valid
+          if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
+            echo "Failed to retrieve the GTmetrix report PDF link"
+            exit 1
+          fi
+
+      - name: Send Report Link to n8n
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
-          # Post the report URL to n8n webhook
+          # Send the report PDF link to the n8n webhook
           curl -X POST $N8N_WEBHOOK_URL \
             -H "Content-Type: application/json" \
-            -d '{"report_url": "'"$REPORT_URL"'"}'
+            -d '{"report_pdf": "'"$REPORT_PDF"'"}'
           
-          echo "GTmetrix Test Completed! The full response and report URL are displayed above."
+          echo "GTmetrix Report PDF Link sent to n8n!"
