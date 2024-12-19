@@ -21,15 +21,32 @@ jobs:
           GTMETRIX_API_KEY: ${{ secrets.GTMETRIX_API_KEY }}
         run: |
           curl -X POST https://gtmetrix.com/api/2.0/tests \
-          -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
+          -H "Authorization: Basic (echo -n ${GTMETRIX_API_KEY}: | base64)" \
           -H "Content-Type: application/vnd.api+json" \
           -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
           -o gtmetrix-response.json
+          
+          # Extract the report PDF URL
+          export REPORT_URL=$(jq -r '.data.attributes.report_pdf' gtmetrix-response.json)
+          echo "Report URL: $REPORT_URL"
+          
+          # Ensure the report URL is valid
+          if [ -z "$REPORT_URL" ] || [ "$REPORT_URL" == "null" ]; then
+            echo "Failed to retrieve the GTmetrix report URL"
+            exit 1
+          fi
 
 
 
       - name: Display Results
+        env:
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
           # Extract and display the results
           cat gtmetrix-response.json
           echo "GTmetrix Test Completed! Review the response above for results."
+
+          # Post the report URL to n8n webhook
+          curl -X POST $N8N_WEBHOOK_URL \
+            -H "Content-Type: application/json" \
+            -d '{"report_url": "'"$REPORT_URL"'"}'
