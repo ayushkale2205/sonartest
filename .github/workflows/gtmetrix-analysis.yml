@@ -25,18 +25,18 @@ jobs:
       - name: Send Success Email via n8n (SonarQube Scan Completed)
         if: success()
         env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL_SONAR }}
+          N8N_WEBHOOK_URL_SONAR: ${{ secrets.N8N_WEBHOOK_URL_SONAR }}
         run: |
-          curl -X POST $Env:N8N_WEBHOOK_URL `
+          curl -X POST $Env:N8N_WEBHOOK_URL_SONAR `
             -H "Content-Type: application/json" `
             -d '{"body": "The SonarQube scan has been completed successfully for the latest commit. Please review the results."}'
 
       - name: Send Failure Email via n8n (SonarQube Scan Failed)
         if: failure()
         env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          N8N_WEBHOOK_URL_SONAR: ${{ secrets.N8N_WEBHOOK_URL_SONAR }}
         run: |
-          curl -X POST $Env:N8N_WEBHOOK_URL `
+          curl -X POST $Env:N8N_WEBHOOK_URL_SONAR `
             -H "Content-Type: application/json" `
             -d '{"body": "The SonarQube scan has failed for the latest commit. Please review the errors and try again."}'
 
