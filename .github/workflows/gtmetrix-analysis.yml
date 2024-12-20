@@ -80,7 +80,7 @@ jobs:
           cat gtmetrix-report-details.json
 
           REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-report-details.json)
-          echo "Report PDF Link: $REPORT_PDF"
+          echo "Report PDF Link: $REPORT_PDF" >> $GITHUB_ENV
 
           if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report PDF link"
