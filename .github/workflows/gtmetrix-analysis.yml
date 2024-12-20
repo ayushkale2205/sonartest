@@ -39,8 +39,8 @@ jobs:
           fi
 
           # Step 2: Poll for Test Completion
-          MAX_RETRIES=10
-          RETRY_DELAY=30
+          MAX_RETRIES=20
+          RETRY_DELAY=40
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Polling GTmetrix test status... Attempt $i of $MAX_RETRIES"
             curl -X GET "$SELF_LINK" \
