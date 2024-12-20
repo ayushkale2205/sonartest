@@ -19,6 +19,7 @@ jobs:
       - name: Run GTmetrix Test
         env:
           GTMETRIX_API_KEY: ${{ secrets.GTMETRIX_API_KEY }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
         run: |
           # Step 1: Trigger GTmetrix Test
           curl -X POST https://gtmetrix.com/api/2.0/tests \
@@ -82,18 +83,13 @@ jobs:
           REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-report-details.json)
           echo "Report PDF Link: $REPORT_PDF"
           # echo "::set-output name=report::$REPORT_PDF"
-          echo "{report}=${REPORT_PDF}" >> $GITHUB_OUTPUT
+          # echo "{report}=${REPORT_PDF}" >> $GITHUB_OUTPUT
 
           if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report PDF link"
             exit 1
           fi
 
-      - name: Send Report Link to n8n
-        env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
-        run: |
-          REPORT_PDF="${{ steps.run-gtmetrix-test.outputs.report }}"
           echo "Sending the following data to n8n: {\"report_pdf\": \"$REPORT_PDF\"}"
 
           # Sending the report PDF link to n8n webhook
@@ -102,3 +98,17 @@ jobs:
             -d '{"report_pdf": "'"$REPORT_PDF"'"}'
 
           echo "GTmetrix Report PDF Link sent to n8n!"
+
+      # - name: Send Report Link to n8n
+      #   env:
+      #     N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+      #   run: |
+      #     REPORT_PDF="${{ steps.run-gtmetrix-test.outputs.report }}"
+      #     echo "Sending the following data to n8n: {\"report_pdf\": \"$REPORT_PDF\"}"
+
+      #     # Sending the report PDF link to n8n webhook
+      #     curl -X POST "$N8N_WEBHOOK_URL" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{"report_pdf": "'"$REPORT_PDF"'"}'
+
+      #     echo "GTmetrix Report PDF Link sent to n8n!"
