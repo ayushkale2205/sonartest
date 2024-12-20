@@ -5,10 +5,24 @@ on:
     branches:
       - main
   pull_request:
+    types: [opened, synchronize, reopened]
     branches:
       - main
 
 jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  
   gtmetrix-analysis:
     runs-on: ubuntu-latest
 
@@ -27,19 +41,16 @@ jobs:
             -H "Content-Type: application/vnd.api+json" \
             -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
             -o gtmetrix-response.json
-          
           echo "Raw GTmetrix Response (Initial Test Submission):"
           cat gtmetrix-response.json
-
           SELF_LINK=$(jq -r '.links.self' gtmetrix-response.json)
           echo "Self Link: $SELF_LINK"
-
           if [ -z "$SELF_LINK" ] || [ "$SELF_LINK" == "null" ]; then
             echo "Failed to retrieve the self link for the GTmetrix test"
             exit 1
           fi
 
-          # Step 2: Poll for Test Completion
+          # Step 2: Initiate the test
           MAX_RETRIES=20
           RETRY_DELAY=40
           for i in $(seq 1 $MAX_RETRIES); do
@@ -47,13 +58,10 @@ jobs:
             curl -X GET "$SELF_LINK" \
               -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
               -o gtmetrix-detailed-response.json
-
             echo "Raw GTmetrix Response (Polling Step $i):"
             cat gtmetrix-detailed-response.json
-
             STATE=$(jq -r '.data.attributes.state' gtmetrix-detailed-response.json)
             echo "Test State: $STATE"
-
             if [ "$STATE" == "completed" ]; then
               echo "GTmetrix Test Completed!"
               break
@@ -67,48 +75,27 @@ jobs:
           # Step 3: Fetch Detailed Report
           REPORT_LINK=$(jq -r '.data.links.report' gtmetrix-detailed-response.json)
           echo "Report Link: $REPORT_LINK"
-
           if [ -z "$REPORT_LINK" ] || [ "$REPORT_LINK" == "null" ]; then
             echo "Failed to retrieve the report link"
             exit 1
           fi
-
           curl -X GET "$REPORT_LINK" \
             -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
             -o gtmetrix-report-details.json
-
           echo "Detailed Report Response:"
           cat gtmetrix-report-details.json
-
+          
+          # Step 4: Fetch Report PDF
           REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-report-details.json)
           echo "Report PDF Link: $REPORT_PDF"
-          # echo "::set-output name=report::$REPORT_PDF"
-          # echo "{report}=${REPORT_PDF}" >> $GITHUB_OUTPUT
-
           if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report PDF link"
             exit 1
           fi
 
+          # Step 5: Send Report PDF Link to n8n
           echo "Sending the following data to n8n: {\"report_pdf\": \"$REPORT_PDF\"}"
-
-          # Sending the report PDF link to n8n webhook
           curl -X POST "$N8N_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{"report_pdf": "'"$REPORT_PDF"'"}'
-
           echo "GTmetrix Report PDF Link sent to n8n!"
-
-      # - name: Send Report Link to n8n
-      #   env:
-      #     N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
-      #   run: |
-      #     REPORT_PDF="${{ steps.run-gtmetrix-test.outputs.report }}"
-      #     echo "Sending the following data to n8n: {\"report_pdf\": \"$REPORT_PDF\"}"
-
-      #     # Sending the report PDF link to n8n webhook
-      #     curl -X POST "$N8N_WEBHOOK_URL" \
-      #       -H "Content-Type: application/json" \
-      #       -d '{"report_pdf": "'"$REPORT_PDF"'"}'
-
-      #     echo "GTmetrix Report PDF Link sent to n8n!"
