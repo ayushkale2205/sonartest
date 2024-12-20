@@ -13,7 +13,7 @@ class ExampleSonarIssues:
     def potential_divide_by_zero(self, divisor):
         # Possible division by zero without validation
         result = 100 / divisor
-        print(f"Result i        s {result}")
+        print(f"Result i          s {result}")
 
     def inefficient_loop(self):
         # Inefficient string concatenation in a loop
