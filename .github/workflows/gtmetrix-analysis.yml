@@ -52,12 +52,21 @@ jobs:
           done
 
           # Fetch Report PDF Link
-          REPORT_PDF=$(jq -r '.data.links.report_pdf' gtmetrix-detailed-response.json)
-          if [ -z "$REPORT_PDF" ] || [ "$REPORT_PDF" == "null" ]; then
-            echo "Failed to retrieve the GTmetrix report PDF link"
+          REPORT_PDF=$(jq -r '.data.links.report_pdf // empty' gtmetrix-detailed-response.json)
+          
+          # Handle different error cases
+          if [ -z "$REPORT_PDF" ]; then
+            if jq -e '.data.links.report_pdf' gtmetrix-detailed-response.json > /dev/null; then
+              echo "The GTmetrix report PDF link is explicitly 'null'."
+            else
+              echo "The GTmetrix report PDF link is missing from the response."
+            fi
             exit 1
           fi
+          
+          # Save the PDF link to GITHUB_ENV
           echo "REPORT_PDF=$REPORT_PDF" >> $GITHUB_ENV
+
 
       - name: Send Report Link to n8n
         env:
