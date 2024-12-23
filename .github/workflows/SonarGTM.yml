@@ -56,7 +56,7 @@ jobs:
           curl -X POST https://gtmetrix.com/api/2.0/tests \
             -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
             -H "Content-Type: application/vnd.api+json" \
-            -d '{"data": {"type": "test", "attributes": {"url": "https://mmf5n4kt-3000.inc1.devtunnels.ms/"}}}' \
+            -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.co.in/"}}}' \
             -o gtmetrix-response.json
           echo "Raw GTmetrix Response (Initial Test Submission):"
           cat gtmetrix-response.json
