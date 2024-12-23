@@ -1,4 +1,4 @@
-name: GTmetrix Performance Test
+name: GTmetrix Performance Test And Sonar Test
 
 on:
   push:
@@ -16,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Send Success Email via n8n (SonarQube Scan Completed)
         if: success()
@@ -56,7 +56,7 @@ jobs:
           curl -X POST https://gtmetrix.com/api/2.0/tests \
             -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
             -H "Content-Type: application/vnd.api+json" \
-            -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
+            -d '{"data": {"type": "test", "attributes": {"url": "https://mmf5n4kt-3000.inc1.devtunnels.ms/"}}}' \
             -o gtmetrix-response.json
           echo "Raw GTmetrix Response (Initial Test Submission):"
           cat gtmetrix-response.json
