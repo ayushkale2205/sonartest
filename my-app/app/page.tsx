@@ -40,7 +40,7 @@ export default function Login() {
           </button>
         </form>
         <p className="mt-4 text-sm text-center text-gray-600">
-          Don't have an account ? <a href="#" className="text-blue-500 hover:underline">Sign Up</a>
+          Don't have an account  ? <a href="#" className="text-blue-500 hover:underline">Sign Up</a>
         </p>
       </div>
     </div>
