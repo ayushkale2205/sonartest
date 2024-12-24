@@ -103,10 +103,13 @@ jobs:
           cat gtmetrix-report-details.json
           
           # Step 4: Send Report URL to n8n
-          REPORT_URL=$(jq -r '.data.attributes.report_url' gtmetrix-report-details.json)
-          echo "Report URL: $REPORT_URL"
+          echo "Fetching GTmetrix Report URL..."
+          REPORT_URL=$(jq -r '.data.links.report_url' gtmetrix-report-details.json)
+          
           if [ -z "$REPORT_URL" ] || [ "$REPORT_URL" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report URL"
+            echo "Debug: Full JSON Response"
+            cat gtmetrix-report-details.json
             exit 1
           fi
 
