@@ -56,7 +56,7 @@ jobs:
           curl -X POST https://gtmetrix.com/api/2.0/tests \
             -H "Authorization: Basic $(echo -n ${GTMETRIX_API_KEY}: | base64)" \
             -H "Content-Type: application/vnd.api+json" \
-            -d '{"data": {"type": "test", "attributes": {"url": "https://www.google.com/"}}}' \
+            -d '{"data": {"type": "test", "attributes": {"url": "https://www.shoplc.com/"}}}' \
             -o gtmetrix-response.json
           echo "Raw GTmetrix Response (Initial Test Submission):"
           cat gtmetrix-response.json
@@ -105,7 +105,7 @@ jobs:
           # Step 4: Send Report URL to n8n
           echo "Fetching GTmetrix Report URL..."
           REPORT_URL=$(jq -r '.data.links.report_url' gtmetrix-report-details.json)
-          
+
           if [ -z "$REPORT_URL" ] || [ "$REPORT_URL" == "null" ]; then
             echo "Failed to retrieve the GTmetrix report URL"
             echo "Debug: Full JSON Response"
